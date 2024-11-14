@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Explorer | 矩阵特征值探索</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #7B68EE;
+            --secondary: #6A5ACD;
+            --accent: #00CED1;
+            --background: #0A0A0F;
+            --surface: #1A1A23;
+            --text-primary: #E0E0E0;
+            --text-secondary: #9E9E9E;
+            --success: #00B894;
+            --error: #FF6B6B;
+            --warning: #FFD93D;
+            --card-bg: #1E1E2D;
+            --border-color: #2A2A35;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(26, 26, 35, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        #logoCanvas {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: transparent;
+        }
+
+        .logo-text {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(123, 104, 238, 0.1);
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 主要内容区域 */
+        main {
+            margin-top: 70px;
+            padding: 2rem;
+        }
+
+        /* 欢迎区域 */
+        .hero-section {
+            height: calc(100vh - 70px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 4rem;
+        }
+
+        .hero-content {
+            flex: 0 0 400px;
+            min-width: 400px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(123, 104, 238, 0.1);
+        }
+
+        .hero-visual {
+            flex: 0 0 500px;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+            margin-right: 50px;
+        }
+
+        #heroCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            background: var(--surface);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 特性区域 */
+        .features-section {
+            padding: 4rem 0;
+            background: var(--surface);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(123, 104, 238, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .hero-section {
+                gap: 2rem;
+            }
+
+            .hero-content {
+                flex: 0 0 350px;
+                min-width: 350px;
+            }
+
+            .hero-visual {
+                flex: 0 0 450px;
+                height: 550px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                flex-direction: column;
+                height: auto;
+                padding-top: 2rem;
+                gap: 2rem;
+            }
+
+            .hero-content {
+                flex: none;
+                min-width: 0;
+                width: 100%;
+                text-align: center;
+            }
+
+            .hero-visual {
+                width: 100%;
+                height: 500px;
+                flex: none;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+        }
+
+        .demo-panel {
+            position: absolute;
+            top: 0;
+            right: -120%;
+            width: 100%;
+            height: 100%;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .demo-content {
+            padding: 1rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .demo-content h3 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .demo-canvas-container {
+            flex: 1;
+            min-height: 350px;
+            background: rgba(123, 104, 238, 0.05);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .demo-info {
+            background: var(--card-bg);
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-content {
+            display: none;
+            height: 70px;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        .step-content h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            color: var(--primary);
+        }
+
+        .step-content p {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin: 0;
+            color: var(--text-secondary);
+        }
+
+        .demo-controls {
+            margin-top: auto;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .demo-controls .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .cube-material {
+            color: var(--primary);
+        }
+
+        .particle-material {
+            color: var(--accent);
+        }
+
+        .coordinate-grid {
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+
+        .coordinate-axis {
+            stroke: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 添加/修改响应式样式 */
+        @media (max-width: 768px) {
+            /* 导航栏响应式 */
+            .navbar-content {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none; /* 在手机端先隐藏导航链接 */
+            }
+
+            /* Logo 响应式 */
+            .logo {
+                gap: 1rem;
+            }
+
+            #logoCanvas {
+                width: 36px;
+                height: 36px;
+            }
+
+            .logo-text {
+                font-size: 1.4rem;
+            }
+
+            /* 主要内容区域响应式 */
+            .hero-section {
+                flex-direction: column;
+                height: auto;
+                padding: 2rem 1rem;
+                gap: 2rem;
+            }
+
+            .hero-content {
+                flex: none;
+                min-width: 0;
+                width: 100%;
+                text-align: center;
+                padding: 0 1rem;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 0.8rem;
+            }
+
+            .btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            /* 演示区域响应式 */
+            .hero-visual {
+                width: 100%;
+                height: 450px;
+                margin-right: 0;
+            }
+
+            .demo-panel {
+                right: -100%;
+            }
+
+            .demo-content {
+                padding: 0.8rem;
+            }
+
+            .demo-content h3 {
+                font-size: 1rem;
+            }
+
+            .demo-canvas-container {
+                min-height: 280px;
+            }
+
+            .demo-info {
+                height: auto;
+                min-height: 100px;
+            }
+
+            .step-content h4 {
+                font-size: 0.85rem;
+            }
+
+            .step-content p {
+                font-size: 0.8rem;
+            }
+
+            /* 特性区域响应式 */
+            .features-section {
+                padding: 3rem 1rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                padding: 0 1rem;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .feature-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+
+            .feature-title {
+                font-size: 1.1rem;
+            }
+
+            .feature-description {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 添加小屏幕设备的额外优化 */
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+
+            .hero-visual {
+                height: 400px;
+            }
+
+            .demo-canvas-container {
+                min-height: 250px;
+            }
+
+            .btn {
+                width: 100%; /* 按钮占满宽度 */
+                margin-bottom: 0.5rem;
+            }
+
+            .feature-card {
+                padding: 1.2rem;
+            }
+        }
+
+        /* 添加中等屏幕设备的优化 */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hero-section {
+                padding: 2rem;
+                gap: 3rem;
+            }
+
+            .hero-content {
+                flex: 0 0 300px;
+                min-width: 300px;
+            }
+
+            .hero-visual {
+                flex: 0 0 400px;
+                height: 500px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 添加横屏模式的优化 */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .hero-section {
+                height: auto;
+                min-height: 100vh;
+                padding: 4rem 2rem;
+            }
+
+            .hero-visual {
+                height: 350px;
+            }
+
+            .demo-canvas-container {
+                min-height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <canvas id="logoCanvas"></canvas>
+                <span class="logo-text">Matrix Explorer</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">特性</a>
+                <a href="#learn" class="nav-link">学习</a>
+                <a href="#visualize" class="nav-link">可视化</a>
+                <a href="#calculate" class="nav-link">计算</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">探索矩阵特征值的奥秘</h1>
+                <p class="hero-subtitle">通过交互式学习和直观的可视化，深入理解线性代数中的核心概念</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary">开始学习</button>
+                    <button class="btn btn-secondary" id="demoButton">观看演示</button>
+                </div>
+            </div>
+            <div class="hero-visual" id="visualContainer">
+                <canvas id="heroCanvas"></canvas>
+                <div class="demo-panel" id="demoPanel">
+                    <div class="demo-content">
+                        <h3>矩阵特征值与特征向量演示</h3>
+                        <div class="demo-canvas-container">
+                            <canvas id="demoCanvas"></canvas>
+                        </div>
+                        <div class="demo-info">
+                            <div class="step-content" id="step1">
+                                <h4>Step 1: 特征值</h4>
+                                <p>特征值是使得 Av = λv 成立的标量 λ</p>
+                            </div>
+                            <div class="step-content" id="step2">
+                                <h4>Step 2: 特征向量</h4>
+                                <p>特征向量在矩阵变换下只改变大小，不改变方向</p>
+                            </div>
+                            <div class="demo-controls">
+                                <button class="btn btn-primary demo-next">下一步</button>
+                                <button class="btn btn-secondary demo-close">关闭演示</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features-section" id="features">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">λ</div>
+                    <h3 class="feature-title">交互式学习</h3>
+                    <p class="feature-description">通过动态示例和实时反馈，轻松掌握特征值概念</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">→</div>
+                    <h3 class="feature-title">直观可视化</h3>
+                    <p class="feature-description">使用2D/3D图形展示矩阵变换和特征向量</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">∑</div>
+                    <h3 class="feature-title">即时计算</h3>
+                    <p class="feature-description">快速计算特征值和特征向量，并展示详细步骤</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 初始化3D动画
+        const canvas = document.getElementById('heroCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 设置canvas尺寸
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 添加动画效果
+        function animate() {
+            // 这里添加动画逻辑
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 0) {
+                navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            } else {
+                navbar.style.boxShadow = 'none';
+            }
+        });
+
+        // 添加3D Logo实现
+        class Logo3D {
+            constructor() {
+                this.canvas = document.getElementById('logoCanvas');
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    alpha: true,
+                    antialias: true
+                });
+
+                // 粒子系统参数
+                this.particles = [];
+                this.particleCount = 50;
+
+                this.init();
+            }
+
+            init() {
+                // 设置渲染器
+                this.renderer.setSize(48, 48);
+                this.renderer.setClearColor(0x000000, 0);
+
+                // 设置相机位置
+                this.camera.position.z = 2.5;
+
+                // 创建镂空立方体
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const edges = new THREE.EdgesGeometry(geometry);
+                const material = new THREE.LineBasicMaterial({
+                    color: 0x7B68EE,
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 2
+                });
+                this.cube = new THREE.LineSegments(edges, material);
+                this.scene.add(this.cube);
+
+                // 创建粒子系统
+                const particleGeometry = new THREE.BufferGeometry();
+                const particlePositions = [];
+                const particleSizes = [];
+
+                for (let i = 0; i < this.particleCount; i++) {
+                    // 随机位置
+                    particlePositions.push(
+                        (Math.random() - 0.5) * 2, // x
+                        (Math.random() - 0.5) * 2, // y
+                        (Math.random() - 0.5) * 2  // z
+                    );
+
+                    // 随机大小
+                    particleSizes.push(Math.random() * 0.05 + 0.02);
+
+                    // 存储粒子信息用于动画
+                    this.particles.push({
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * 0.01,
+                            (Math.random() - 0.5) * 0.01,
+                            (Math.random() - 0.5) * 0.01
+                        ),
+                        index: i * 3
+                    });
+                }
+
+                particleGeometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(particlePositions, 3)
+                );
+                particleGeometry.setAttribute(
+                    'size',
+                    new THREE.Float32BufferAttribute(particleSizes, 1)
+                );
+
+                const particleMaterial = new THREE.PointsMaterial({
+                    color: 0x00CED1,
+                    size: 0.05,
+                    transparent: true,
+                    opacity: 0.6,
+                    sizeAttenuation: true
+                });
+
+                this.particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+                this.scene.add(this.particleSystem);
+
+                // 添加环境光和方向光
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                directionalLight.position.set(1, 1, 1);
+                this.scene.add(directionalLight);
+
+                // 开始动画
+                this.animate();
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // 旋转立方体
+                this.cube.rotation.x += 0.01;
+                this.cube.rotation.y += 0.01;
+
+                // 更新粒子位置
+                const positions = this.particleSystem.geometry.attributes.position.array;
+
+                this.particles.forEach(particle => {
+                    // 更新位置
+                    positions[particle.index] += particle.velocity.x;
+                    positions[particle.index + 1] += particle.velocity.y;
+                    positions[particle.index + 2] += particle.velocity.z;
+
+                    // 检查边界并反弹
+                    for (let i = 0; i < 3; i++) {
+                        if (Math.abs(positions[particle.index + i]) > 1) {
+                            particle.velocity[['x', 'y', 'z'][i]] *= -1;
+                        }
+                    }
+                });
+
+                this.particleSystem.geometry.attributes.position.needsUpdate = true;
+
+                // 添加悬浮效果
+                this.cube.position.y = Math.sin(Date.now() * 0.002) * 0.1;
+                this.particleSystem.position.y = Math.sin(Date.now() * 0.002) * 0.1;
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            resize() {
+                const size = 48;  // 更新尺寸
+                this.renderer.setSize(size, size);
+                this.camera.aspect = 1;
+                this.camera.updateProjectionMatrix();
+            }
+        }
+
+        // 初始化Logo
+        document.addEventListener('DOMContentLoaded', () => {
+            const logo = new Logo3D();
+
+            // 响应窗口大小变化
+            window.addEventListener('resize', () => logo.resize());
+
+            // 初始化演示面板
+            initDemoPanel();
+        });
+
+        // 演示面板初始化和控制
+        function initDemoPanel() {
+            const demoButton = document.getElementById('demoButton');
+            const demoPanel = document.getElementById('demoPanel');
+            const nextButton = demoPanel.querySelector('.demo-next');
+            const closeButton = demoPanel.querySelector('.demo-close');
+            const demoCanvas = document.getElementById('demoCanvas');
+            const demoCtx = demoCanvas.getContext('2d');
+
+            let currentStep = 1;
+            const totalSteps = 2;
+            let currentAnimation = null;
+
+            // 设置演示画布尺寸
+            function resizeDemoCanvas() {
+                const container = demoCanvas.parentElement;
+                demoCanvas.width = container.clientWidth;
+                demoCanvas.height = container.clientHeight;
+            }
+
+            // 显示演示面板
+            demoButton.addEventListener('click', () => {
+                currentStep = 1;
+                demoPanel.style.right = '0';
+                resizeDemoCanvas();
+                showStep(currentStep);
+                updateStepButtons();
+            });
+
+            // 关闭演示面板
+            closeButton.addEventListener('click', () => {
+                demoPanel.style.right = '-100%';
+                if (currentAnimation) {
+                    cancelAnimationFrame(currentAnimation);
+                }
+            });
+
+            // 下一步按钮
+            nextButton.addEventListener('click', () => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                    updateStepButtons();
+                } else {
+                    demoPanel.style.right = '-100%';
+                    if (currentAnimation) {
+                        cancelAnimationFrame(currentAnimation);
+                    }
+                }
+            });
+
+            function updateStepButtons() {
+                nextButton.textContent = currentStep === totalSteps ? '完成' : '下一步';
+            }
+
+            function showStep(step) {
+                const steps = document.querySelectorAll('.step-content');
+                steps.forEach(s => s.classList.remove('active'));
+
+                const currentStepEl = document.getElementById(`step${step}`);
+                currentStepEl.classList.add('active');
+
+                if (currentAnimation) {
+                    cancelAnimationFrame(currentAnimation);
+                }
+
+                startAnimation(step);
+            }
+
+            function startAnimation(step) {
+                const width = demoCanvas.width;
+                const height = demoCanvas.height;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const scale = Math.min(width, height) / 5;
+
+                if (step === 1) {
+                    // 特征值动画
+                    let time = 0;
+                    function animate() {
+                        time += 0.01;
+                        demoCtx.clearRect(0, 0, width, height);
+
+                        // 绘制网格
+                        drawGrid(demoCtx, width, height, scale);
+
+                        // 绘制矩阵变过程
+                        const progress = Math.min(1, time / 3);
+
+                        // 绘制原始向量
+                        const vector = { x: Math.cos(time), y: Math.sin(time) };
+                        drawUnitCircle(demoCtx, centerX, centerY, scale, 'rgba(255,255,255,0.1)');
+
+                        // 应用矩阵变换 [2 1; 1 2]
+                        const transformedX = 2 * vector.x + vector.y;
+                        const transformedY = vector.x + 2 * vector.y;
+
+                        // 绘制变换后的椭圆
+                        drawTransformedEllipse(demoCtx, centerX, centerY, scale, progress);
+
+                        // 绘制特征值方程和解释
+                        drawEquations(demoCtx, centerX, height, progress);
+
+                        currentAnimation = requestAnimationFrame(animate);
+                    }
+                    animate();
+                } else if (step === 2) {
+                    // 特征向量动画
+                    let time = 0;
+                    function animate() {
+                        time += 0.01;
+                        demoCtx.clearRect(0, 0, width, height);
+
+                        // 绘制网格
+                        drawGrid(demoCtx, width, height, scale);
+
+                        // 绘制特征向量
+                        const progress = Math.min(1, time / 2);
+
+                        // 特征向量1 (1,1) 对应特征值3
+                        drawEigenvector(demoCtx, centerX, centerY, scale,
+                            { x: 1 / Math.sqrt(2), y: 1 / Math.sqrt(2) },
+                            3, progress, '#7B68EE', 'λ₁=3');
+
+                        // 特征向量2 (-1,1) 对特征值1
+                        drawEigenvector(demoCtx, centerX, centerY, scale,
+                            { x: -1 / Math.sqrt(2), y: 1 / Math.sqrt(2) },
+                            1, progress, '#00CED1', 'λ₂=1');
+
+                        // 绘制说明文字
+                        drawExplanation(demoCtx, width, height, progress);
+
+                        currentAnimation = requestAnimationFrame(animate);
+                    }
+                    animate();
+                }
+            }
+
+            // 辅助函数
+            function drawGrid(ctx, width, height, scale) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+
+                // 绘制网格线
+                for (let x = 0; x < width; x += scale / 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < height; y += scale / 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                // 绘制坐标轴
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(width / 2, 0);
+                ctx.lineTo(width / 2, height);
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.stroke();
+            }
+
+            function drawUnitCircle(ctx, centerX, centerY, scale, color) {
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, scale, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            function drawTransformedEllipse(ctx, centerX, centerY, scale, progress) {
+                ctx.strokeStyle = 'rgba(123,104,238,0.3)';
+                ctx.beginPath();
+                for (let angle = 0; angle <= Math.PI * 2; angle += 0.1) {
+                    const x = Math.cos(angle);
+                    const y = Math.sin(angle);
+                    const tx = (2 * x + y) * scale * progress;
+                    const ty = (x + 2 * y) * scale * progress;
+
+                    if (angle === 0) {
+                        ctx.moveTo(centerX + tx, centerY - ty);
+                    } else {
+                        ctx.lineTo(centerX + tx, centerY - ty);
+                    }
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            function drawEigenvector(ctx, centerX, centerY, scale, vector, eigenvalue, progress, color, label) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+
+                // 原始向量
+                const x = vector.x * scale;
+                const y = vector.y * scale;
+
+                // 绘制向量
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + x, centerY - y);
+                ctx.stroke();
+
+                // 绘制变换后的向量
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + x * (1 + (eigenvalue - 1) * progress),
+                    centerY - y * (1 + (eigenvalue - 1) * progress)
+                );
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 绘制标签
+                ctx.fillStyle = color;
+                ctx.font = '16px Inter';
+                ctx.fillText(label, centerX + x * 1.2, centerY - y * 1.2);
+            }
+
+            function drawEquations(ctx, centerX, height, progress) {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.font = '18px Inter';
+                ctx.textAlign = 'center';
+
+                if (progress > 0.3) {
+                    ctx.fillText('det(A - λI) = 0', centerX, height - 120);
+                }
+                if (progress > 0.6) {
+                    ctx.fillText('(2-λ)(2-λ) - 1 = 0', centerX, height - 90);
+                }
+                if (progress > 0.9) {
+                    ctx.fillText('λ₁ = 3, λ₂ = 1', centerX, height - 60);
+                }
+            }
+
+            function drawExplanation(ctx, width, height, progress) {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.font = '16px Inter';
+                ctx.textAlign = 'left';
+
+                if (progress > 0.5) {
+                    ctx.fillText('特征向量在变换后:', 20, height - 80);
+                    ctx.fillText('• 方向保持不变', 30, height - 55);
+                    ctx.fillText('• 只改变大小(特征值倍数)', 30, height - 30);
+                }
+            }
+
+            // 响应窗口大小变化
+            window.addEventListener('resize', resizeDemoCanvas);
+        }
+    </script>
+</body>
+
+</html>
